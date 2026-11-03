@@ -179,7 +179,7 @@
 
 <canvas id="bg"></canvas>
 <canvas id="confetti"></canvas>
-<button id="music" type="button" title="Putar musik" aria-label="Putar musik">🎵</button>
+<button id="music" type="button" title="Ketuk untuk memutar musik" aria-label="Ketuk untuk memutar musik" aria-pressed="false">▶️</button>
 
 <!-- INTRO -->
 <div id="intro">
@@ -458,11 +458,11 @@ function typeWriter(text){
 $('#openBtn').onclick = () => {
   $('#intro').classList.add('hide');
   $('#music').style.display='block';
+  setMusicButton('▶️','Ketuk untuk memutar musik');
   burst(220);
   setTimeout(()=>burst(120, W*.2, H*.4),400);
   setTimeout(()=>burst(120, W*.8, H*.4),700);
   setTimeout(()=>typeWriter(CONFIG.pesanPembuka),900);
-  playMusic();
 };
 
 /* ---------- Scroll reveal ---------- */
@@ -515,7 +515,7 @@ function playOnce(){
   melody.forEach(([f,b])=>{
     const o=actx.createOscillator(), g=actx.createGain();
     o.type='triangle'; o.frequency.value=f;
-    g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(.18,t+.03); g.gain.exponentialRampToValueAtTime(.001,t+b*beat);
+    g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(.28,t+.03); g.gain.exponentialRampToValueAtTime(.001,t+b*beat);
     o.connect(g).connect(actx.destination); o.start(t); o.stop(t+b*beat);
     t+=b*beat;
   });
@@ -526,6 +526,7 @@ function setMusicButton(icon,label){
   button.textContent=icon;
   button.title=label;
   button.setAttribute('aria-label',label);
+  button.setAttribute('aria-pressed',String(playing));
 }
 async function playMusic(){
   if(playing||startingMusic) return;
