@@ -180,6 +180,7 @@
 <canvas id="bg"></canvas>
 <canvas id="confetti"></canvas>
 <button id="music" type="button" title="Ketuk untuk memutar musik" aria-label="Ketuk untuk memutar musik" aria-pressed="false">▶️</button>
+<audio id="backgroundMusic" src="thousand.mp3" preload="auto" loop></audio>
 
 <!-- INTRO -->
 <div id="intro">
@@ -503,24 +504,9 @@ function updateCounter(){
 }
 updateCounter(); setInterval(updateCounter,1000);
 
-/* ---------- Musik: melodi Happy Birthday (Web Audio) ---------- */
-const N={G4:392,A4:440,B4:493.88,C5:523.25,D5:587.33,E5:659.25,F5:698.46,G5:783.99};
-const melody=[[N.G4,.75],[N.G4,.25],[N.A4,1],[N.G4,1],[N.C5,1],[N.B4,2],
-              [N.G4,.75],[N.G4,.25],[N.A4,1],[N.G4,1],[N.D5,1],[N.C5,2],
-              [N.G4,.75],[N.G4,.25],[N.G5,1],[N.E5,1],[N.C5,1],[N.B4,1],[N.A4,1],
-              [N.F5,.75],[N.F5,.25],[N.E5,1],[N.C5,1],[N.D5,1],[N.C5,2]];
-let actx=null, playing=false, startingMusic=false, timer=null;
-function playOnce(){
-  const beat=.5; let t=actx.currentTime+.05;
-  melody.forEach(([f,b])=>{
-    const o=actx.createOscillator(), g=actx.createGain();
-    o.type='triangle'; o.frequency.value=f;
-    g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(.28,t+.03); g.gain.exponentialRampToValueAtTime(.001,t+b*beat);
-    o.connect(g).connect(actx.destination); o.start(t); o.stop(t+b*beat);
-    t+=b*beat;
-  });
-  return (t-actx.currentTime)*1000+1500;
-}
+/* ---------- Musik dari file MP3 ---------- */
+const backgroundMusic=$('#backgroundMusic');
+let playing=false, startingMusic=false;
 function setMusicButton(icon,label){
   const button=$('#music');
   button.textContent=icon;
@@ -530,21 +516,12 @@ function setMusicButton(icon,label){
 }
 async function playMusic(){
   if(playing||startingMusic) return;
-  const AudioContextClass=window.AudioContext||window.webkitAudioContext;
-  if(!AudioContextClass){
-    setMusicButton('⚠️','Audio tidak didukung browser ini');
-    console.error('Web Audio API tidak didukung browser ini.');
-    return;
-  }
   startingMusic=true;
   $('#music').disabled=true;
   try{
-    actx=actx||new AudioContextClass();
-    await actx.resume();
-    if(actx.state!=='running') throw new Error(`AudioContext tidak berjalan (state: ${actx.state}).`);
+    await backgroundMusic.play();
     playing=true;
     setMusicButton('🎵','Hentikan musik');
-    (function loop(){ if(!playing) return; const dur=playOnce(); timer=setTimeout(loop,dur); })();
   }catch(error){
     setMusicButton('⚠️','Musik gagal diputar. Ketuk untuk mencoba lagi.');
     console.error('Gagal memulai musik:',error);
@@ -553,8 +530,13 @@ async function playMusic(){
     $('#music').disabled=false;
   }
 }
-function stopMusic(){ playing=false; clearTimeout(timer); setMusicButton('🔇','Putar musik'); if(actx){actx.close();actx=null} }
+function stopMusic(){ playing=false; backgroundMusic.pause(); setMusicButton('🔇','Putar musik'); }
 $('#music').onclick = () => playing ? stopMusic() : playMusic();
+backgroundMusic.addEventListener('error',()=>{
+  playing=false;
+  setMusicButton('⚠️','File musik tidak dapat dimuat');
+  console.error('File musik tidak dapat dimuat:',backgroundMusic.currentSrc,backgroundMusic.error);
+});
 </script>
 </body>
 </html>
