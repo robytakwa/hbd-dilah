@@ -179,7 +179,7 @@
 
 <canvas id="bg"></canvas>
 <canvas id="confetti"></canvas>
-<button id="music" title="Putar / hentikan musik">🎵</button>
+<button id="music" type="button" title="Putar musik" aria-label="Putar musik">🎵</button>
 
 <!-- INTRO -->
 <div id="intro">
@@ -509,7 +509,7 @@ const melody=[[N.G4,.75],[N.G4,.25],[N.A4,1],[N.G4,1],[N.C5,1],[N.B4,2],
               [N.G4,.75],[N.G4,.25],[N.A4,1],[N.G4,1],[N.D5,1],[N.C5,2],
               [N.G4,.75],[N.G4,.25],[N.G5,1],[N.E5,1],[N.C5,1],[N.B4,1],[N.A4,1],
               [N.F5,.75],[N.F5,.25],[N.E5,1],[N.C5,1],[N.D5,1],[N.C5,2]];
-let actx=null, playing=false, timer=null;
+let actx=null, playing=false, startingMusic=false, timer=null;
 function playOnce(){
   const beat=.5; let t=actx.currentTime+.05;
   melody.forEach(([f,b])=>{
@@ -521,14 +521,38 @@ function playOnce(){
   });
   return (t-actx.currentTime)*1000+1500;
 }
-function playMusic(){
-  try{
-    actx = actx || new (window.AudioContext||window.webkitAudioContext)();
-    playing=true; $('#music').textContent='🎵';
-    (function loop(){ if(!playing) return; const dur=playOnce(); timer=setTimeout(loop,dur); })();
-  }catch(e){}
+function setMusicButton(icon,label){
+  const button=$('#music');
+  button.textContent=icon;
+  button.title=label;
+  button.setAttribute('aria-label',label);
 }
-function stopMusic(){ playing=false; clearTimeout(timer); $('#music').textContent='🔇'; if(actx){actx.close();actx=null} }
+async function playMusic(){
+  if(playing||startingMusic) return;
+  const AudioContextClass=window.AudioContext||window.webkitAudioContext;
+  if(!AudioContextClass){
+    setMusicButton('⚠️','Audio tidak didukung browser ini');
+    console.error('Web Audio API tidak didukung browser ini.');
+    return;
+  }
+  startingMusic=true;
+  $('#music').disabled=true;
+  try{
+    actx=actx||new AudioContextClass();
+    await actx.resume();
+    if(actx.state!=='running') throw new Error(`AudioContext tidak berjalan (state: ${actx.state}).`);
+    playing=true;
+    setMusicButton('🎵','Hentikan musik');
+    (function loop(){ if(!playing) return; const dur=playOnce(); timer=setTimeout(loop,dur); })();
+  }catch(error){
+    setMusicButton('⚠️','Musik gagal diputar. Ketuk untuk mencoba lagi.');
+    console.error('Gagal memulai musik:',error);
+  }finally{
+    startingMusic=false;
+    $('#music').disabled=false;
+  }
+}
+function stopMusic(){ playing=false; clearTimeout(timer); setMusicButton('🔇','Putar musik'); if(actx){actx.close();actx=null} }
 $('#music').onclick = () => playing ? stopMusic() : playMusic();
 </script>
 </body>
